@@ -70,16 +70,17 @@
         datum_inline: false,
         datum_hash: 'a5b3f6e8c9d2a1b4c7d8e9f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1',
         datum: {
-          version: 1,
-          metadata: {
-            protocol: "DEX_V2",
-            poolId: "pool_xyz_123"
-          },
-          state: {
-            liquidity: 45000000,
-            feeRate: 0.003,
-            lastUpdate: 1705504800
-          }
+          constructor: 0,
+          fields: [
+            { bytes: "d87980" },
+            { int: 1705504800000 },
+            { 
+              list: [
+                { bytes: "4d494e53574150" },
+                { int: 500000 }
+              ]
+            }
+          ]
         }
         // Note: No datumFormatter provided - will show raw JSON
       }

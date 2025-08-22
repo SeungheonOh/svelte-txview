@@ -422,59 +422,6 @@
         {/if}
       </div>
 
-      <!-- Main Content Grid -->
-      <div class="grid lg:grid-cols-2 gap-6">
-        <!-- Inputs Section -->
-        <div class="space-y-4">
-          <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-black">Inputs</h2>
-              <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                {transaction.txInInfos.length}
-              </span>
-            </div>
-            <div class="space-y-2">
-              {#each transaction.txInInfos as input, i}
-                <TxInInfoCard txInInfo={input} index={i} />
-              {/each}
-            </div>
-          </div>
-
-          {#if transaction.txRefInInfos.length > 0}
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-black">Reference Inputs</h2>
-                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                  {transaction.txRefInInfos.length}
-                </span>
-              </div>
-              <div class="space-y-2">
-                {#each transaction.txRefInInfos as refInput, i}
-                  <TxInInfoCard txInInfo={refInput} index={i} isReference={true} />
-                {/each}
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Outputs Section -->
-        <div class="space-y-4">
-          <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-black">Outputs</h2>
-              <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                {transaction.txOuts.length}
-              </span>
-            </div>
-            <div class="space-y-2">
-              {#each transaction.txOuts as output, i}
-                <TxOutCard txOut={output} index={i} />
-              {/each}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Required Signers Section -->
       {#if transaction.signers.length > 0}
         {@const signedCount = transaction.signers.filter(s => hasSignerSigned(s)).length}
@@ -542,7 +489,58 @@
         </div>
       {/if}
 
+      <!-- Main Content Grid -->
+      <div class="grid lg:grid-cols-2 gap-6">
+        <!-- Inputs Section -->
+        <div class="space-y-4">
+          <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-black">Inputs</h2>
+              <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                {transaction.txInInfos.length}
+              </span>
+            </div>
+            <div class="space-y-2">
+              {#each transaction.txInInfos as input, i}
+                <TxInInfoCard txInInfo={input} index={i} />
+              {/each}
+            </div>
+          </div>
 
+          {#if transaction.txRefInInfos.length > 0}
+            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-black">Reference Inputs</h2>
+                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                  {transaction.txRefInInfos.length}
+                </span>
+              </div>
+              <div class="space-y-2">
+                {#each transaction.txRefInInfos as refInput, i}
+                  <TxInInfoCard txInInfo={refInput} index={i} isReference={true} />
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Outputs Section -->
+        <div class="space-y-4">
+          <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-black">Outputs</h2>
+              <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                {transaction.txOuts.length}
+              </span>
+            </div>
+            <div class="space-y-2">
+              {#each transaction.txOuts as output, i}
+                <TxOutCard txOut={output} index={i} />
+              {/each}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 {/if}
