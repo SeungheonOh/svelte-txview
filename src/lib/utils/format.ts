@@ -5,11 +5,11 @@ export function formatADA(lovelace: bigint): string {
   return ada.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 }
 
-export function formatAssetName(policyId: string): string {
-  const hexMatch = policyId.match(/^[0-9a-f]+$/i);
+export function formatAssetName(hexOrText: string): string {
+  const hexMatch = hexOrText.match(/^[0-9a-f]+$/i);
   if (hexMatch) {
     try {
-      const bytes = policyId.match(/.{1,2}/g);
+      const bytes = hexOrText.match(/.{1,2}/g);
       if (bytes) {
         const text = bytes.map(byte => String.fromCharCode(parseInt(byte, 16))).join('');
         if (/^[\x20-\x7E]+$/.test(text)) {
@@ -18,7 +18,32 @@ export function formatAssetName(policyId: string): string {
       }
     } catch {}
   }
-  return policyId;
+  return hexOrText;
+}
+
+export function formatAssetId(assetId: string): {
+  policyId: string;
+  assetName: string;
+  displayName: string | null;
+} {
+  // If the key is >= 56 hex chars, split into policyId + assetName
+  if (assetId.length >= 56 && /^[0-9a-f]+$/i.test(assetId)) {
+    const policyId = truncateHash(assetId.slice(0, 56), 8, 4);
+    const assetNameHex = assetId.slice(56);
+    const assetName = assetNameHex ? formatAssetName(assetNameHex) : '';
+    return {
+      policyId,
+      assetName,
+      displayName: assetName || null
+    };
+  }
+  // Fallback: try to decode the whole thing
+  const decoded = formatAssetName(assetId);
+  return {
+    policyId: decoded !== assetId ? '' : truncateHash(assetId, 8, 4),
+    assetName: decoded !== assetId ? decoded : '',
+    displayName: decoded !== assetId ? decoded : null
+  };
 }
 
 export function truncateHash(hash: string, startLength: number = 6, endLength: number = 6): string {
@@ -40,7 +65,7 @@ export function formatAddress(address: string | Address, truncateLength?: number
   const alias = getAddressAlias(address);
   const value = getAddressValue(address);
   const displayAddress = truncateLength ? truncateHash(value, truncateLength, truncateLength) : value;
-  
+
   return {
     alias,
     address: displayAddress
@@ -67,7 +92,7 @@ export function formatWitness(witness: string | Witness, truncateLength?: number
   const alias = getWitnessAlias(witness);
   const value = getWitnessValue(witness);
   const displayWitness = truncateLength ? truncateHash(value, truncateLength, truncateLength) : value;
-  
+
   return {
     alias,
     witness: displayWitness
@@ -78,7 +103,7 @@ export function formatSigner(signer: string | Signer, truncateLength?: number): 
   const alias = getSignerAlias(signer);
   const value = getSignerValue(signer);
   const displaySigner = truncateLength ? truncateHash(value, truncateLength, truncateLength) : value;
-  
+
   return {
     alias,
     signer: displaySigner

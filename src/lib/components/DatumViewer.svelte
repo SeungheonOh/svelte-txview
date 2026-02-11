@@ -72,8 +72,9 @@
       <div class="datum-indicator">
         <div class="datum-dot" class:inline={isInline}></div>
         <span class="datum-label">
-          {#if datum && formatter && formattedDatum()}
-            {formattedDatum().label || 'Datum'}
+          {#if datum && formatter}
+            {@const result = formattedDatum()}
+            {result?.label || 'Datum'}
           {:else if isInline}
             Inline Datum
           {:else if datumHash}
@@ -111,12 +112,12 @@
         {/if}
         {#if datum}
           <div class="datum-data" class:has-hash={datumHash}>
-            {#if formatter && formattedDatum()}
-              {@const { formatted } = formattedDatum()}
-              {#if typeof formatted === 'string'}
-                <pre class="formatted-text">{formatted}</pre>
-              {:else}
-                <pre class="formatted-json">{formatJson(formatted)}</pre>
+            {#if formatter}
+              {@const result = formattedDatum()}
+              {#if result && typeof result.formatted === 'string'}
+                <pre class="formatted-text">{result.formatted}</pre>
+              {:else if result}
+                <pre class="formatted-json">{formatJson(result.formatted)}</pre>
               {/if}
             {:else}
               <pre class="raw-json">{formatJson(datum)}</pre>

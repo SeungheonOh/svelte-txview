@@ -5,11 +5,11 @@ export type DatumFormatter = (datum: any) => {
   formatted: string | { [key: string]: any };
 };
 
-export type MultiAsset = { 
-  [key: string]: bigint 
+export type MultiAsset = {
+  [key: string]: bigint
 };
 
-export type Value = { 
+export type Value = {
   coins: bigint;
   assets?: MultiAsset;
 };
@@ -44,6 +44,28 @@ export type Signer = {
   alias?: string;
 };
 
+export type MintEntry = {
+  policyId: string;
+  assets: { [assetName: string]: bigint };
+};
+
+export type Certificate = {
+  type: string;
+  detail: Record<string, any>;
+};
+
+export type Redeemer = {
+  purpose: string;
+  index: number;
+  data: any;
+  exUnits: { mem: bigint; steps: bigint };
+};
+
+export type Withdrawal = {
+  stakeAddress: string;
+  amount: bigint;
+};
+
 export type TxInfo = {
   txHash: string;
   txRaw: string;
@@ -55,4 +77,15 @@ export type TxInfo = {
   validityIntervalStart?: number;
   ttl?: number;
   fee: number;
+  mint?: MintEntry[];
+  certificates?: Certificate[];
+  redeemers?: Redeemer[];
+  withdrawals?: Withdrawal[];
+  metadata?: Record<string, any>;
+  collaterals?: TxInInfo[];
+  collateralReturn?: TxOut;
+  totalCollateral?: bigint;
+  scriptIntegrityHash?: string;
+  networkId?: number;
+  isValid?: boolean;
 };
