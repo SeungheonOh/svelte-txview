@@ -1,5 +1,6 @@
 import { Serialization, type Cardano } from '@cardano-sdk/core';
 import type { BlockfrostClient } from './blockfrost';
+import { findDatumFormatter } from './datum-formatters';
 import type {
   TxInfo,
   TxOut,
@@ -27,31 +28,34 @@ function tokenMapToMultiAsset(tokenMap: Cardano.TokenMap | undefined): MultiAsse
 
 function plutusDataToJson(data: Cardano.PlutusData | undefined): any {
   if (data === undefined || data === null) return undefined;
-  // PlutusData can be various forms; serialize to a JSON-friendly representation
+  // PlutusData types: bigint | Uint8Array | PlutusMap (Map) | PlutusList (array) | ConstrPlutusData
   try {
-    if (typeof data === 'bigint') return data.toString();
-    if (typeof data === 'number') return data;
-    if (typeof data === 'string') return data;
+    if (typeof data === 'bigint') return { int: Number(data) };
+    if (typeof data === 'number') return { int: data };
+    if (typeof data === 'string') return { bytes: data };
+    if (data instanceof Uint8Array) {
+      return { bytes: Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('') };
+    }
     if (data instanceof Map) {
-      const obj: Record<string, any> = {};
+      const entries: any[] = [];
       data.forEach((v, k) => {
-        obj[String(plutusDataToJson(k))] = plutusDataToJson(v);
+        entries.push({ k: plutusDataToJson(k), v: plutusDataToJson(v) });
       });
-      return obj;
+      return { map: entries };
     }
     if (Array.isArray(data)) {
-      return data.map(plutusDataToJson);
+      return { list: data.map(plutusDataToJson) };
     }
     if (typeof data === 'object' && data !== null) {
-      // Constr
       const d = data as any;
-      if ('constructor' in d && 'fields' in d) {
+      // ConstrPlutusData: has own 'constructor' property that is bigint/number, plus 'fields'
+      if (Object.prototype.hasOwnProperty.call(d, 'constructor') && 'fields' in d) {
         return {
           constructor: typeof d.constructor === 'bigint' ? Number(d.constructor) : d.constructor,
           fields: Array.isArray(d.fields) ? d.fields.map(plutusDataToJson) : d.fields
         };
       }
-      if (d.cbor) return d.cbor;
+      if (d.cbor) return { bytes: d.cbor };
       // Generic object fallback
       const result: Record<string, any> = {};
       for (const [k, v] of Object.entries(d)) {
@@ -67,16 +71,19 @@ function plutusDataToJson(data: Cardano.PlutusData | undefined): any {
 
 function mapCoreOutput(output: Cardano.TxOut): TxOut {
   const hasInlineDatum = output.datum !== undefined && output.datum !== null;
+  const assets = tokenMapToMultiAsset(output.value.assets);
+  const formatter = findDatumFormatter(assets);
   return {
     address: String(output.address),
     value: {
       coins: output.value.coins,
-      assets: tokenMapToMultiAsset(output.value.assets)
+      assets
     },
     datum_inline: hasInlineDatum,
     datum: hasInlineDatum ? plutusDataToJson(output.datum) : undefined,
     datum_hash: output.datumHash ? String(output.datumHash) : undefined,
-    address_script_hash: output.scriptReference ? 'has_script' : undefined
+    address_script_hash: output.scriptReference ? 'has_script' : undefined,
+    datumFormatter: formatter
   };
 }
 
@@ -157,18 +164,21 @@ async function resolveInputs(
     const txId = String(input.txId);
     try {
       const resolved = await blockfrost.resolveInput(txId, input.index);
+      const assets = Object.keys(resolved.assets).length > 0 ? resolved.assets : undefined;
+      const formatter = findDatumFormatter(assets);
       result.push({
         transaction_id: txId,
         output_index: BigInt(input.index),
         address: resolved.address,
         value: {
           coins: resolved.lovelace,
-          assets: Object.keys(resolved.assets).length > 0 ? resolved.assets : undefined
+          assets
         },
         datum_inline: resolved.inlineDatum !== null,
         datum: resolved.inlineDatum ?? undefined,
         datum_hash: resolved.datumHash ?? undefined,
-        address_script_hash: resolved.scriptHash ?? undefined
+        address_script_hash: resolved.scriptHash ?? undefined,
+        datumFormatter: formatter
       });
     } catch (e: any) {
       // If we can't resolve, still include the input with minimal info

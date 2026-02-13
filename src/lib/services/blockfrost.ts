@@ -96,13 +96,10 @@ export class BlockfrostClient {
       }
     }
 
+    // Resolve datum: fetch JSON representation from Blockfrost when we have a datum hash
     let inlineDatum: any = null;
-    if (output.inline_datum) {
-      try {
-        inlineDatum = JSON.parse(output.inline_datum);
-      } catch {
-        inlineDatum = output.inline_datum;
-      }
+    if (output.data_hash) {
+      inlineDatum = await this.getDatum(output.data_hash);
     }
 
     return {
