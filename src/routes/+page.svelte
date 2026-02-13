@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
   import TransactionViewer from '$lib/components/TransactionViewer.svelte';
   import { BlockfrostClient, type Network } from '$lib/services/blockfrost';
   import { buildTxInfo } from '$lib/services/decoder';
@@ -12,6 +13,7 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
   let progress = $state('');
+  let copied = $state(false);
 
   function saveApiKey() {
     if (browser) {
@@ -21,6 +23,34 @@
         localStorage.removeItem('blockfrost_api_key');
       }
     }
+  }
+
+  function updateHash() {
+    if (!browser) return;
+    const params = new URLSearchParams();
+    if (cborHex.trim()) params.set('cbor', cborHex.trim());
+    if (network !== 'mainnet') params.set('net', network);
+    if (apiKey.trim()) params.set('key', apiKey.trim());
+    const hash = params.toString();
+    history.replaceState(null, '', hash ? `#${hash}` : window.location.pathname);
+  }
+
+  function clearHash() {
+    if (!browser) return;
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
+  async function copyLink() {
+    const params = new URLSearchParams();
+    if (cborHex.trim()) params.set('cbor', cborHex.trim());
+    if (network !== 'mainnet') params.set('net', network);
+    if (apiKey.trim()) params.set('key', apiKey.trim());
+    const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+    await navigator.clipboard.writeText(url);
+    copied = true;
+    setTimeout(() => copied = false, 2000);
   }
 
   async function decode() {
@@ -41,6 +71,7 @@
       saveApiKey();
       const client = new BlockfrostClient(apiKey.trim(), network);
       transaction = await buildTxInfo(cborHex.trim(), client, (msg) => progress = msg);
+      updateHash();
     } catch (e: any) {
       error = e.message || 'Failed to decode transaction';
     } finally {
@@ -48,6 +79,23 @@
       progress = '';
     }
   }
+
+  onMount(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const cbor = params.get('cbor');
+    const net = params.get('net');
+    const key = params.get('key');
+    if (net && ['mainnet', 'preprod', 'preview'].includes(net)) {
+      network = net as Network;
+    }
+    if (key) apiKey = key;
+    if (cbor) {
+      cborHex = cbor;
+      decode();
+    }
+  });
 
   const networkColors: Record<Network, string> = {
     mainnet: 'bg-green-500',
@@ -89,6 +137,7 @@
         <select
           id="network"
           bind:value={network}
+          onchange={clearHash}
           class="block w-full md:w-40 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
         >
           <option value="mainnet">Mainnet</option>
@@ -105,6 +154,7 @@
           type="password"
           bind:value={apiKey}
           onblur={saveApiKey}
+          oninput={clearHash}
           placeholder="Enter your Blockfrost project_id..."
           class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
         />
@@ -118,6 +168,7 @@
     <textarea
       id="cbor"
       bind:value={cborHex}
+      oninput={clearHash}
       placeholder="Paste your transaction CBOR hex here..."
       rows="6"
       class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-y"
@@ -132,6 +183,17 @@
           Decoding...
         {:else}
           Decode Transaction
+        {/if}
+      </button>
+      <button
+        onclick={copyLink}
+        disabled={loading || !cborHex.trim()}
+        class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {#if copied}
+          Copied!
+        {:else}
+          Copy Link
         {/if}
       </button>
       {#if loading && progress}
