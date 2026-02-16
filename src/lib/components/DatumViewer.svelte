@@ -50,10 +50,10 @@
     }
   }
 
-  function formatJson(obj: any, indent = 0): string {
+  function formatJson(obj: any): string {
     if (typeof obj === 'string') return obj;
     try {
-      return JSON.stringify(obj, null, 2);
+      return JSON.stringify(obj, (_, v) => typeof v === 'bigint' ? Number(v) : v, 2);
     } catch {
       return String(obj);
     }

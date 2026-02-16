@@ -28,7 +28,7 @@ function tokenMapToMultiAsset(tokenMap: Cardano.TokenMap | undefined): MultiAsse
 
 function plutusDataToJson(data: Cardano.PlutusData | undefined): any {
   if (data === undefined || data === null) return undefined;
-  // PlutusData types: bigint | Uint8Array | PlutusMap (Map) | PlutusList (array) | ConstrPlutusData
+  // SDK types: bigint | Uint8Array | PlutusList { items } | PlutusMap { data: Map } | ConstrPlutusData { constructor, fields }
   try {
     if (typeof data === 'bigint') return { int: Number(data) };
     if (typeof data === 'number') return { int: data };
@@ -48,12 +48,25 @@ function plutusDataToJson(data: Cardano.PlutusData | undefined): any {
     }
     if (typeof data === 'object' && data !== null) {
       const d = data as any;
-      // ConstrPlutusData: has own 'constructor' property that is bigint/number, plus 'fields'
+      // ConstrPlutusData: { constructor: bigint, fields: PlutusList }
       if (Object.prototype.hasOwnProperty.call(d, 'constructor') && 'fields' in d) {
+        const fieldItems = Array.isArray(d.fields) ? d.fields : (d.fields?.items ?? []);
         return {
           constructor: typeof d.constructor === 'bigint' ? Number(d.constructor) : d.constructor,
-          fields: Array.isArray(d.fields) ? d.fields.map(plutusDataToJson) : d.fields
+          fields: fieldItems.map(plutusDataToJson)
         };
+      }
+      // PlutusList: { items: PlutusData[] }
+      if ('items' in d && Array.isArray(d.items)) {
+        return { list: d.items.map(plutusDataToJson) };
+      }
+      // PlutusMap: { data: Map<PlutusData, PlutusData> }
+      if ('data' in d && d.data instanceof Map) {
+        const entries: any[] = [];
+        d.data.forEach((v: any, k: any) => {
+          entries.push({ k: plutusDataToJson(k), v: plutusDataToJson(v) });
+        });
+        return { map: entries };
       }
       if (d.cbor) return { bytes: d.cbor };
       // Generic object fallback
